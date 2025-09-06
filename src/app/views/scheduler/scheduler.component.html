@@ -10,10 +10,11 @@
   <div class="row mb-4">
     <div class="col-12">
       <div class="p-4 border rounded shadow-sm bg-white">
-        <app-new-event></app-new-event>
+        <app-new-event [messages]="messages" [groupsOptions]="groups" (createEvent)="onCreateEvent($event)"></app-new-event>
       </div>
     </div>
   </div>
+
   <div class="row mb-5">
     <div class="col-12">
       <div class="p-4 border rounded shadow-sm bg-white">
