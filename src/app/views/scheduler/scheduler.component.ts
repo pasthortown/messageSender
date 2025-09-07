@@ -8,6 +8,9 @@ import { ScheduleComponent } from './../../../components/schedule/schedule.compo
 // Servicio
 import { CatalogService } from './../../services/catalog.service';
 
+// 🔔 Confirmaciones
+import Swal from 'sweetalert2';
+
 // Tipos EXACTOS que usa new-event y los listados
 export interface Message {
   item_id: number;
@@ -37,6 +40,16 @@ function mongoDateToISO(md?: any): string | undefined {
 }
 function oidToString(oid: any): string {
   return oid?.$oid ?? '';
+}
+
+/** Mapeo UI -> documento que espera la colección "messagesgroup" (para crear) */
+function toMessagesGroupDoc(a: Pick<AgendaItem, 'item_id' | 'message_id' | 'group' | 'scheduleISO'>) {
+  return {
+    schedule: new Date(a.scheduleISO).toISOString(),
+    group: a.group,
+    message_id: a.message_id,
+    item_id: a.item_id
+  };
 }
 
 @Component({
@@ -73,17 +86,58 @@ export class SchedulerComponent implements OnInit {
     ]);
   }
 
+  // ======== SOLO LOG (dejado tal cual) ========
+  selected_date(event: any) {
+    // console.log('[SCHEDULER] Fecha seleccionada en <app-schedule>:', event);
+  }
+
+  // ======== CONFIRMAR Y BORRAR EN messagesgroup ========
+  delete_appointment(event: any) {
+    console.log('[SCHEDULER] Cita a borrar recibida en <app-schedule>:', event);
+
+    const scheduleISO =
+      event?.scheduleISO ??
+      mongoDateToISO(event?.schedule) ??
+      (event?.schedule ? new Date(event.schedule).toISOString() : undefined);
+
+    Swal.fire({
+      title: '¿Borrar mensaje programado?',
+      text: `Grupo: ${event.group} • ${scheduleISO ? new Date(scheduleISO).toLocaleString('es-EC') : ''}`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, borrar',
+      cancelButtonText: 'Cancelar'
+    }).then(async res => {
+      if (!res.isConfirmed) return;
+
+      try {
+        await this.catalogService.delete('messagesgroup', event.item_id);
+
+        Swal.fire('Borrado', 'El mensaje programado fue eliminado.', 'success');
+
+        // 🔁 Recargar agenda desde BD para evitar inconsistencias
+        await this.refreshAgenda();
+      } catch (err) {
+        console.error('[SCHEDULER] Error al borrar appointment:', err);
+        Swal.fire('Error', 'No se pudo borrar el mensaje programado.', 'error');
+      }
+    });
+  }
+
+  // ======== CREAR 1 APPOINTMENT POR CADA GRUPO EN messagesgroup ========
   onCreateEvent(ev: NewEventPayload): void {
     this.lastEvent = ev;
     console.log('[SCHEDULER] Evento recibido desde <app-new-event>:', ev);
 
-    // === Generar un AgendaItem POR CADA GRUPO seleccionado (solo log, no insertamos) ===
+    // Validaciones mínimas
     if (!ev.messageKey || !ev.scheduledAtISO || !ev.groups?.length) {
       console.warn('[SCHEDULER] Datos insuficientes para generar AgendaItem(s).');
       return;
     }
 
     const nowISO = new Date().toISOString();
+
+    // Generar UN AgendaItem POR CADA GRUPO seleccionado
     const items: AgendaItem[] = ev.groups.map((g) => ({
       item_id: ev.messageKey!,
       message_id: ev.messageKey!,     // backend usa message_id
@@ -91,6 +145,23 @@ export class SchedulerComponent implements OnInit {
       scheduleISO: ev.scheduledAtISO!,
       timestampISO: nowISO
     }));
+
+    // Persistir en la colección "messagesgroup"
+    (async () => {
+      try {
+        await Promise.all(
+          items.map((a) => this.catalogService.create('messagesgroup', toMessagesGroupDoc(a)))
+        );
+
+        Swal.fire('Guardado', `Se programaron ${items.length} mensaje(s).`, 'success');
+
+        // 🔁 Recargar agenda desde BD para evitar inconsistencias
+        await this.refreshAgenda();
+      } catch (err) {
+        console.error('[SCHEDULER] Error al crear agenda:', err);
+        Swal.fire('Error', 'No se pudo programar el/los mensaje(s).', 'error');
+      }
+    })();
   }
 
   // ===== llamadas al web service =====
@@ -138,5 +209,12 @@ export class SchedulerComponent implements OnInit {
     } finally {
       this.loadingAgenda = false;
     }
+  }
+
+  // ===== helper de recarga consistente =====
+  private async refreshAgenda(): Promise<void> {
+    // vaciar para evitar parpadeo de datos inconsistentes
+    this.agenda = [];
+    await this.getAgenda();
   }
 }

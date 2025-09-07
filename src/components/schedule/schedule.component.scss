@@ -202,3 +202,29 @@
     fill: black;
   }
 }
+/* resalta el appointment seleccionado */
+.appointment.app-selected {
+  border: 1px solid #000; /* pedido: 1px negro */
+}
+
+/* botón X dentro de cada appointment */
+.appointment {
+  position: relative; /* para posicionar el botón interno sin afectar layout */
+}
+
+.appointment .app-close {
+  position: absolute;
+  right: 6px;                 /* extremo izquierdo */
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
+  opacity: .75;
+}
+
+.appointment .app-close:hover {
+  opacity: 1;
+}

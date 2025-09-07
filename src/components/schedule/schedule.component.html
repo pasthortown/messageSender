@@ -76,7 +76,20 @@
                             [cdkDragDisabled]="!dropable"
                             [cdkDragData]="appointment"
                             [ngStyle]="{ 'background-color': appointment.color }"
+                            (click)="onAppointmentClick(appointment, $event)"
+                            [class.app-selected]="isSelected(appointment)"
+                            [title]="getAppointmentHint(appointment)"
                           >
+                            <!-- Botón de eliminar -->
+                            <button
+                              type="button"
+                              class="app-close"
+                              title="Eliminar"
+                              (click)="onDeleteClick(appointment, $event)"
+                            >
+                              <i class="fa-solid fa-xmark"></i>
+                            </button>
+
                             <span>{{ appointment.title }}</span>
                           </div>
                         }
@@ -139,7 +152,20 @@
                     [cdkDragDisabled]="!dropable"
                     [cdkDragData]="appointment"
                     [ngStyle]="{ 'background-color': appointment.color }"
+                    (click)="onAppointmentClick(appointment, $event)"
+                    [class.app-selected]="isSelected(appointment)"
+                    [title]="getAppointmentHint(appointment)"
                   >
+                    <!-- Botón de eliminar -->
+                    <button
+                      type="button"
+                      class="app-close"
+                      title="Eliminar"
+                      (click)="onDeleteClick(appointment, $event)"
+                    >
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+
                     <span>{{ appointment.title }}</span>
                   </div>
                 }
@@ -188,7 +214,20 @@
                     [cdkDragDisabled]="!dropable"
                     [cdkDragData]="appointment"
                     [ngStyle]="{ 'background-color': appointment.color }"
+                    (click)="onAppointmentClick(appointment, $event)"
+                    [class.app-selected]="isSelected(appointment)"
+                    [title]="getAppointmentHint(appointment)"
                   >
+                    <!-- Botón de eliminar -->
+                    <button
+                      type="button"
+                      class="app-close"
+                      title="Eliminar"
+                      (click)="onDeleteClick(appointment, $event)"
+                    >
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+
                     <span>{{ appointment.title }}</span>
                   </div>
                 }

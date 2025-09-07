@@ -19,7 +19,7 @@
     <div class="col-12">
       <div class="p-4 border rounded shadow-sm bg-white">
         <h3 class="mb-4">Mensajes Programados</h3>
-        <app-schedule></app-schedule>
+        <app-schedule [messages]="messages" [appointments]="agenda" [editable]="false" [dropable]="false" (select_date)="selected_date($event)" (delete_appointment)="delete_appointment($event)"></app-schedule>
       </div>
     </div>
   </div>
