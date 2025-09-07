@@ -93,7 +93,6 @@ export class SchedulerComponent implements OnInit {
 
   // ======== CONFIRMAR Y BORRAR EN messagesgroup ========
   delete_appointment(event: any) {
-    console.log('[SCHEDULER] Cita a borrar recibida en <app-schedule>:', event);
 
     const scheduleISO =
       event?.scheduleISO ??
@@ -127,7 +126,6 @@ export class SchedulerComponent implements OnInit {
   // ======== CREAR 1 APPOINTMENT POR CADA GRUPO EN messagesgroup ========
   onCreateEvent(ev: NewEventPayload): void {
     this.lastEvent = ev;
-    console.log('[SCHEDULER] Evento recibido desde <app-new-event>:', ev);
 
     // Validaciones mínimas
     if (!ev.messageKey || !ev.scheduledAtISO || !ev.groups?.length) {
