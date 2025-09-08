@@ -151,7 +151,7 @@ export class SchedulerComponent implements OnInit {
           items.map((a) => this.catalogService.create('messagesgroup', toMessagesGroupDoc(a)))
         );
 
-        Swal.fire('Guardado', `Se programaron ${items.length} mensaje(s).`, 'success');
+        Swal.fire('Guardado', `Se programaron ${items.length} mensaje(s).`, 'success').then(() => window.location.reload());
 
         // 🔁 Recargar agenda desde BD para evitar inconsistencias
         await this.refreshAgenda();

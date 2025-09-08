@@ -47,4 +47,16 @@ export class MessageService {
   ): Promise<ApiEnvelope<MessageReport[]>> {
     return firstValueFrom(this.getByMessageId$(messageId));
   }
+
+  /** Obtener TODOS los reports de messagereport (sin messageId) */
+  getAllReports$(): Observable<ApiEnvelope<MessageReport[]>> {
+    const url = `${this.base}/search/messagereport`;
+    return this.http.get<ApiEnvelope<MessageReport[]>>(url, { headers: this.headers() });
+  }
+
+  /** Versión async/await (helper opcional) */
+  async getAllReports(): Promise<ApiEnvelope<MessageReport[]>> {
+    return firstValueFrom(this.getAllReports$());
+  }
+
 }
