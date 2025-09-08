@@ -27,7 +27,7 @@ export class ZoneScreenComponent {
   }
 
   seleccionar(celda: number) {
-    this.model.zone = celda;
+    this.model.zone = celda - 1;
     this.modelChange.emit(this.model);
   }
 }
