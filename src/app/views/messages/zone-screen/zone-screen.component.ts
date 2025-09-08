@@ -17,9 +17,9 @@ export class ZoneScreenComponent {
   hovered: number | null = null;
 
   matriz: number[][] = [
-    [1, 2, 3],
-    [4, 5, 6],
-    [7, 8, 9]
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8]
   ];
 
   get seleccion(): number | null {
@@ -27,7 +27,7 @@ export class ZoneScreenComponent {
   }
 
   seleccionar(celda: number) {
-    this.model.zone = celda - 1;
+    this.model.zone = celda;
     this.modelChange.emit(this.model);
   }
 }
