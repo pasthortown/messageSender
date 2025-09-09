@@ -23,6 +23,21 @@ import { IconDirective } from '@coreui/icons-angular';
 import { DashboardChartsData, IChartProps } from './dashboard-charts-data';
 import { MessageService } from '../../services/message.service';
 
+import {
+  Chart,
+  Filler,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend,
+  ChartData,
+} from 'chart.js';
+
+// REGISTRO de elementos y plugins (incluye Filler)
+Chart.register(Filler, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
+
 type SeriesPayload = {
   labels: string[];
   accedido: number[];
@@ -48,6 +63,7 @@ type PercentsPayload = {
 @Component({
   templateUrl: 'dashboard.component.html',
   styleUrls: ['dashboard.component.scss'],
+  standalone: true,
   imports: [
     // CoreUI + utilidades usadas en el HTML
     CardComponent, CardBodyComponent, CardFooterComponent, CardHeaderComponent,
@@ -124,7 +140,7 @@ export class DashboardComponent implements OnInit {
       const response = await this.messageService.getAllReports();
       this.data = response?.response ?? [];
 
-      this.buildChartFromData();
+      this.buildChartFromData();   // arma config con fill:false
       this.buildFooterStats();     // calcula totals/percents
       this.feedWidgets();          // llena widgets* a partir de lo ya calculado
     } catch (error) {
@@ -157,8 +173,8 @@ export class DashboardComponent implements OnInit {
       const m = d.getMonth();
       const estado: string = r?.estado || '';
 
-      if (estado === ESTADO.LEIDO)        serieLeido[m] += 1;
-      else if (estado === ESTADO.ACTIVO)  serieActivo[m] += 1;
+      if (estado === ESTADO.LEIDO)         serieLeido[m] += 1;
+      else if (estado === ESTADO.ACTIVO)   serieActivo[m] += 1;
       else if (estado === ESTADO.INACTIVO) serieInactivo[m] += 1;
       else if (estado === ESTADO.ACCEDIDO) serieAccedido[m] += 1;
 
@@ -190,15 +206,18 @@ export class DashboardComponent implements OnInit {
       data: {
         labels,
         datasets: [
-          { label: 'Leído',    data: dataLeido,    borderColor: colorSuccess, backgroundColor: 'transparent', borderWidth: 2, tension: 0.4, pointRadius: 3, pointHoverRadius: 4 },
-          { label: 'Activo',   data: dataActivo,   borderColor: colorInfo,    backgroundColor: 'transparent', borderWidth: 2, tension: 0.4, pointRadius: 3, pointHoverRadius: 4 },
-          { label: 'Inactivo', data: dataInactivo, borderColor: colorWarning, backgroundColor: 'transparent', borderWidth: 2, tension: 0.4, pointRadius: 3, pointHoverRadius: 4 },
-          { label: 'Accedido', data: dataAccedido, borderColor: colorDanger,  backgroundColor: 'transparent', borderWidth: 2, tension: 0.4, pointRadius: 3, pointHoverRadius: 4 }
+          { label: 'Leído',    data: dataLeido,    borderColor: colorSuccess, backgroundColor: 'transparent', borderWidth: 2, tension: 0.4, pointRadius: 3, pointHoverRadius: 4, fill: false },
+          { label: 'Activo',   data: dataActivo,   borderColor: colorInfo,    backgroundColor: 'transparent', borderWidth: 2, tension: 0.4, pointRadius: 3, pointHoverRadius: 4, fill: false },
+          { label: 'Inactivo', data: dataInactivo, borderColor: colorWarning, backgroundColor: 'transparent', borderWidth: 2, tension: 0.4, pointRadius: 3, pointHoverRadius: 4, fill: false },
+          { label: 'Accedido', data: dataAccedido, borderColor: colorDanger,  backgroundColor: 'transparent', borderWidth: 2, tension: 0.4, pointRadius: 3, pointHoverRadius: 4, fill: false }
         ]
       },
       options: {
         maintainAspectRatio: false,
-        plugins: { legend: { display: true } },
+        plugins: {
+          legend: { display: true },
+          filler: { propagate: false }   // ← evita lectura de 'disabled' sobre undefined
+        },
         scales: {
           x: { grid: { drawOnChartArea: false } },
           y: {
@@ -211,15 +230,8 @@ export class DashboardComponent implements OnInit {
       }
     };
 
-    // Series para los widgets (sparklines)
-    this.widgetsSeries = {
-      labels,
-      accedido: dataAccedido,
-      activo: dataActivo,
-      leido: dataLeido,
-      inactivo: dataInactivo
-    };
-    console.log(this.widgetsSeries);
+    // Normaliza fill y plugins por si algo queda heredado
+    this.enforceNoFill();
   }
 
   /** Totales y porcentajes globales por estado (para footer y widgets) */
@@ -269,8 +281,12 @@ export class DashboardComponent implements OnInit {
   // ============================
   initCharts(): void {
     this.mainChartRef()?.stop();
-    // Cargamos opciones base (escalas adaptables al tema)
+
+    // Carga de opciones base (pueden traer fill por defecto desde el tema)
     this.mainChart = this.#chartsData.mainChart;
+
+    // Normalizar: sin relleno y con plugin filler configurado
+    this.enforceNoFill();
   }
 
   handleChartRef($chartRef: any) {
@@ -289,10 +305,17 @@ export class DashboardComponent implements OnInit {
   setChartStyles() {
     if (this.mainChartRef()) {
       setTimeout(() => {
+        // Clonar y mezclar opciones del tema manteniendo nuestros guardas
         const options: ChartOptions = { ...this.mainChart.options };
         const themeScales = this.#chartsData.getScales();
 
-        // merge conservando nuestro suggestedMax y anulando un max "duro" del tema
+        // plugins: asegurar filler definido
+        options.plugins = {
+          ...(options.plugins || {}),
+          filler: { propagate: false, ...(options.plugins as any)?.filler }
+        };
+
+        // merge de escalas
         const mergedScales: any = { ...options.scales, ...themeScales };
         mergedScales.y = {
           ...(mergedScales.y || {}),
@@ -302,9 +325,28 @@ export class DashboardComponent implements OnInit {
           ticks: { precision: 0, ...(mergedScales.y?.ticks || {}) }
         };
 
+        this.mainChartRef().options.plugins = options.plugins as any;
         this.mainChartRef().options.scales = mergedScales;
         this.mainChartRef().update();
       });
     }
+  }
+
+  /** Quita cualquier `fill:true` heredado y asegura opciones del plugin Filler */
+  private enforceNoFill(): void {
+    // Asegurar objeto options
+    this.mainChart.options = this.mainChart.options || {};
+    // Asegurar plugins.filler
+    this.mainChart.options.plugins = {
+      ...(this.mainChart.options.plugins || {}),
+      filler: { propagate: false, ...(this.mainChart.options.plugins as any)?.filler }
+    };
+
+    // Forzar fill:false en todos los datasets presentes
+    const ds = (this.mainChart.data as ChartData<'line'>)?.datasets || [];
+    this.mainChart.data = {
+      ...(this.mainChart.data as any),
+      datasets: ds.map((d: any) => ({ ...d, fill: false }))
+    } as any;
   }
 }

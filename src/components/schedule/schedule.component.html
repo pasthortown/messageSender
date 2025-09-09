@@ -195,17 +195,17 @@
               <td
                 cdkDropList
                 [cdkDropListDisabled]="!dropable"
-                (cdkDropListDropped)="drop($event, monthDays[0], slot)"
+                (cdkDropListDropped)="drop($event, viewDate, slot)"
                 [cdkDropListData]="appointments"
               >
                 <div
-                  (click)="selectDate(monthDays[0], slot)"
-                  (keydown.enter)="selectDate(monthDays[0], slot)"
-                  (keydown.space)="selectDate(monthDays[0], slot)"
+                  (click)="selectDate(viewDate, slot)"
+                  (keydown.enter)="selectDate(viewDate, slot)"
+                  (keydown.space)="selectDate(viewDate, slot)"
                   class="cell-overlay"
                   tabindex="0"
                 ></div>
-                @for(appointment of getAppointmentsForDateTime(monthDays[0],slot); track $index) {
+                @for(appointment of getAppointmentsForDateTime(viewDate,slot); track $index) {
                   <div
                     tabindex="0"
                     class="appointment"
