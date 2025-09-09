@@ -70,6 +70,19 @@
         [disabled]="loading || saving">
         <i class="fas fa-times"></i> Cancelar
       </button>
+
+      @if(message.item_id && message.item_id > 0) {
+
+        <button
+          type="button"
+          class="btn btn-danger"
+          (click)="delete_message(message)"
+          [disabled]="loading || saving">
+          <i class="fas fa-save"></i> Eliminar
+        </button>
+
+      }
+
     </div>
   </div>
 </div>

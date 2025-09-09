@@ -113,6 +113,58 @@ export class MessagesComponent implements OnInit {
 
   trackByItemId = (_: number, m: Message) => m.item_id ?? -1;
 
+  async delete_message(message: Message) {
+    if (!message?.item_id || message.item_id <= 0) {
+      await Swal.fire({
+        icon: 'info',
+        title: 'Nada que eliminar',
+        text: 'El mensaje aún no tiene un item_id válido.'
+      });
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: '¿Eliminar mensaje?',
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'No, cancelar'
+    });
+
+    if (!result.isConfirmed) return;
+
+    if (this.saving) return;
+    this.saving = true;
+
+    try {
+      // 🔧 pasa solo el número, no un objeto
+      await this.catalogService.delete('messages', message.item_id);
+
+      if (this.item_id_selected === message.item_id) {
+        this.item_id_selected = 0;
+        this.message = this.newEmptyMessage();
+      }
+
+      await this.getMessages();
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Mensaje eliminado',
+        text: 'Se eliminó correctamente.'
+      });
+    } catch (err: any) {
+      console.error('Error eliminando Message:', err);
+      await Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err?.message ?? 'Ocurrió un error al eliminar el mensaje.'
+      });
+    } finally {
+      this.saving = false;
+    }
+  }
+
   // ================== Cargar catálogo ==================
   async getMessages() {
     this.loading = true;
